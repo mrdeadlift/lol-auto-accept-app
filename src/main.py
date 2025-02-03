@@ -82,13 +82,18 @@ class AutoAcceptGUI:
         
         self.stop_button = ttk.Button(main_frame, text="停止", command=self.stop_monitoring, state=tk.DISABLED)
         self.stop_button.grid(row=0, column=1, padx=5, pady=5)
+
+        # 自動停止チェックボックス
+        self.auto_stop_var = tk.BooleanVar()
+        self.auto_stop_checkbox = ttk.Checkbutton(main_frame, text="自動で停止する", variable=self.auto_stop_var)
+        self.auto_stop_checkbox.grid(row=1, column=0, columnspan=2, pady=5)
         
         self.exit_button = ttk.Button(main_frame, text="終了", command=self.exit_application)
-        self.exit_button.grid(row=1, column=0, columnspan=2, pady=10)
+        self.exit_button.grid(row=2, column=0, columnspan=2, pady=10)
         
         # ステータスラベル
         self.status_label = ttk.Label(main_frame, text="待機中")
-        self.status_label.grid(row=2, column=0, columnspan=2, pady=5)
+        self.status_label.grid(row=3, column=0, columnspan=2, pady=5)
         
         self.auto_accept = LoLAutoAccept()
         self.monitoring = False
@@ -102,7 +107,10 @@ class AutoAcceptGUI:
         
         def monitor():
             while self.monitoring:
-                self.auto_accept.scan_screen()
+                if self.auto_accept.scan_screen() and self.auto_stop_var.get():
+                    self.stop_monitoring()
+                    self.status_label.config(text="承認完了 - 停止中")
+                    break
                 time.sleep(1)
         
         self.monitor_thread = threading.Thread(target=monitor, daemon=True)
