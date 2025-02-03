@@ -2,3 +2,5 @@ pyautogui==0.9.54
 opencv-python==4.8.1.78
 Pillow==10.1.0
 numpy<2.0.0
+pytest==7.4.3
+pytest-mock==3.12.0
