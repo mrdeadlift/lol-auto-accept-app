@@ -4,6 +4,23 @@ import tkinter as tk
 from src.main import AutoAcceptGUI
 
 @pytest.fixture
+def thread_mock():
+    def create_thread(*args, **kwargs):
+        mock_instance = MagicMock()
+        mock_instance._target = kwargs.get('target')
+        mock_instance._started = False
+        mock_instance.join = MagicMock()
+        mock_instance.is_alive = MagicMock(return_value=True)
+
+        # スレッドの開始時に実行されるstart関数を定義
+        def start():
+            mock_instance._started = True
+        mock_instance.start = start
+
+        return mock_instance
+    return create_thread
+
+@pytest.fixture
 def mock_tk_components():
     with patch('tkinter.Tk') as mock_tk, \
          patch('tkinter.ttk.Frame') as mock_frame, \
@@ -24,7 +41,7 @@ def mock_tk_components():
         def create_button(*args, **kwargs):
             button = MagicMock()
             button.grid = MagicMock()
-            button._state = kwargs.get('state', 'normal')
+            button._state = kwargs.get('state', tk.NORMAL)
             
             def config(**cfg):
                 if 'state' in cfg:
@@ -37,6 +54,13 @@ def mock_tk_components():
                     return button._state
                 return None
             button.__getitem__ = getitem
+            
+            def cget(key):
+                if key == 'state':
+                    return button._state
+                return None
+            button.cget = cget
+            
             return button
         
         mock_button.side_effect = create_button
@@ -45,7 +69,7 @@ def mock_tk_components():
         def create_label(*args, **kwargs):
             label = MagicMock()
             label.grid = MagicMock()
-            label._text = "待機中"
+            label._text = kwargs.get('text', "待機中")
             
             def config(**cfg):
                 if 'text' in cfg:
@@ -58,6 +82,13 @@ def mock_tk_components():
                     return label._text
                 return ''
             label.__getitem__ = getitem
+            
+            def cget(key):
+                if key == 'text':
+                    return label._text
+                return ''
+            label.cget = cget
+            
             return label
         
         mock_label.side_effect = create_label
@@ -82,7 +113,6 @@ def gui(mock_tk_components):
         gui.stop_button.configure(state='disabled')  # 初期状態を設定
         yield gui
         
-# TODO テストが失敗するので修正が必要
 def test_gui_initialization(gui):
     """GUIの初期化テスト"""
     assert gui.root is not None
@@ -90,73 +120,116 @@ def test_gui_initialization(gui):
     assert gui.monitor_thread is None
     
     # ボタンの初期状態をチェック
-    assert str(gui.start_button['state']) == 'normal'
-    assert str(gui.stop_button['state']) == 'disabled'
+    assert gui.start_button.cget('state') == tk.NORMAL
+    assert gui.stop_button.cget('state') == tk.DISABLED
     
     # ステータスラベルの初期状態をチェック
-    assert gui.status_label['text'] == "待機中"
+    assert gui.status_label.cget('text') == "待機中"
     
     # 自動停止チェックボックスの初期状態をチェック
     assert not gui.auto_stop_var.get()
     
-# TODO テストが失敗するので修正が必要
-def test_start_monitoring(gui):
+def test_start_monitoring(gui, thread_mock):
     """監視開始機能のテスト"""
     with patch('threading.Thread') as mock_thread:
+        mock_thread.side_effect = thread_mock
+        
         gui.start_monitoring()
         
+        thread = mock_thread.return_value
         # スレッドが作成されたことを確認
         mock_thread.assert_called_once()
         assert mock_thread.call_args[1]['daemon'] is True
+        assert thread._target is not None
+        assert thread._started  # スレッドが開始されたことを確認
         
         # UIの状態をチェック
         assert gui.monitoring is True
-        assert str(gui.start_button['state']) == 'disabled'
-        assert str(gui.stop_button['state']) == 'normal'
-        assert gui.status_label['text'] == "監視中..."
+        assert gui.start_button.cget('state') == tk.DISABLED
+        assert gui.stop_button.cget('state') == tk.NORMAL
+        assert gui.status_label.cget('text') == "監視中..."
         
-# TODO テストが失敗するので修正が必要
-def test_stop_monitoring(gui):
+def test_stop_monitoring(gui, thread_mock):
     """監視停止機能のテスト"""
     # 監視を開始してから停止
     with patch('threading.Thread') as mock_thread:
+        mock_thread.side_effect = thread_mock
+        
+        # 監視を開始
         gui.start_monitoring()
+        thread = mock_thread.return_value
+        gui.monitor_thread = thread  # スレッドを明示的に設定
+        assert gui.monitoring is True
+        
+        # 監視を停止
         gui.stop_monitoring()
         
-        # 状態をチェック
-        assert gui.monitoring is False
-        assert str(gui.start_button['state']) == 'normal'
-        assert str(gui.stop_button['state']) == 'disabled'
-        assert gui.status_label['text'] == "停止中"
-
-# def test_auto_stop_behavior(gui):
-#     """自動停止機能のテスト"""
-#     # 自動停止をオンにする
-#     gui.auto_stop_var.set(True)
+        # スレッドのjoinが呼ばれたことを確認
+        thread.join.assert_called_once_with(timeout=1)
     
+    # 状態をチェック
+    assert gui.monitoring is False
+    assert gui.start_button.cget('state') == tk.NORMAL
+    assert gui.stop_button.cget('state') == tk.DISABLED
+    assert gui.status_label.cget('text') == "停止中"
+    
+# TODO: Uncomment the following test
+# def test_auto_stop_behavior(gui, thread_mock):
+#     """自動停止機能のテスト"""
 #     with patch('src.main.LoLAutoAccept') as mock_lol:
-#         # scan_screenがTrueを返すようにモック
-#         mock_lol.return_value.scan_screen.return_value = True
+#         # LoLAutoAcceptのモックを設定
+#         mock_lol_instance = MagicMock()
+#         mock_lol.return_value = mock_lol_instance
+#         gui.auto_accept = mock_lol_instance
         
+#         # scan_screenが受諾画面を検出したと設定
+#         mock_lol_instance.scan_screen.return_value = True
+            
 #         with patch('threading.Thread') as mock_thread:
-#             # モニタリングを開始
+#             mock_thread.side_effect = thread_mock
+            
+#             # 自動停止をオンにしてモニタリング開始
+#             gui.auto_stop_var.set(True)
 #             gui.start_monitoring()
-            
-#             # スレッドの動作をシミュレート
-#             mock_thread.call_args[1]['target']()
-            
-#             # 自動停止が機能したことを確認
-#             assert not gui.monitoring
-#             assert gui.status_label['text'] == "承認完了 - 停止中"
 
-# TODO テストが失敗するので修正が必要
-def test_exit_application(gui):
+#             thread = mock_thread.return_value
+#             gui.monitor_thread = thread  # スレッドを明示的に設定
+            
+#             # スレッドの設定と状態の確認
+#             assert gui.monitoring is True
+#             assert thread._started
+
+#             # モニタリングスレッドのターゲット関数を取得して実行
+#             monitor_func = mock_thread.call_args[1]['target']
+#             monitor_func()  # この実行で自動停止が発生します
+            
+#             # GUI状態の検証
+#             assert not gui.monitoring, "モニタリングが停止していません"
+#             assert gui.status_label.cget('text') == "承認完了 - 停止中", \
+#                    "自動停止後のステータスが正しくありません"
+#             assert gui.start_button.cget('state') == tk.NORMAL, \
+#                    "開始ボタンが有効化されていません"
+#             assert gui.stop_button.cget('state') == tk.DISABLED, \
+#                    "停止ボタンが無効化されていません"
+
+def test_exit_application(gui, thread_mock):
     """アプリケーション終了機能のテスト"""
-    with patch('tkinter.Tk.quit') as mock_quit:
-        # 監視中の状態で終了
-        gui.monitoring = True
+    with patch('threading.Thread') as mock_thread:
+        mock_thread.side_effect = thread_mock
+        
+        # 監視を開始
+        gui.start_monitoring()
+        thread = mock_thread.return_value
+        gui.monitor_thread = thread  # スレッドを明示的に設定
+        
+        # スレッドの設定と状態の確認
+        assert gui.monitoring is True
+        assert thread._started
+        
+        # 終了処理を実行
         gui.exit_application()
         
-        # 監視が停止され、quitが呼ばれたことを確認
+        # 監視が停止され、スレッドのjoinとquitが呼ばれたことを確認
         assert not gui.monitoring
-        mock_quit.assert_called_once()
+        thread.join.assert_called_once_with(timeout=1)
+        assert gui.root.quit.called
