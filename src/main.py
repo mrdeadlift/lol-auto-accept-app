@@ -23,13 +23,26 @@ class LoLAutoAccept:
     def __init__(self):
         # pyautoguiの設定
         pyautogui.FAILSAFE = True  # 画面端にマウスを移動で停止
-        self.button_image = 'accept_button.png'
+        
+        # 実行ファイルかソースコードかを判断してパスを設定
+        if getattr(sys, 'frozen', False):
+            # 実行ファイルとして実行している場合
+            application_path = sys._MEIPASS
+        else:
+            # ソースコードとして実行している場合
+            application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+        self.button_image = os.path.join(application_path, 'accept_button.png')
         
         # ボタン画像が存在しない場合は終了
         if not os.path.exists(self.button_image):
             logging.error(f"ボタン画像 '{self.button_image}' が見つかりません。")
             logging.info("プログラムを終了します。")
             sys.exit(1)
+        
+        # エラーログの制御用変数
+        self.last_error_time = 0
+        self.error_cooldown = 60  # エラーログの出力間隔（秒）
 
     def scan_screen(self):
         """画面をスキャンしてマッチング画面の承認ボタンを探す"""
@@ -47,8 +60,15 @@ class LoLAutoAccept:
                 return True
             return False
             
+        except pyautogui.ImageNotFoundException:
+            # 画像が見つからない場合は正常な状態なのでエラーとして扱わない
+            return False
         except Exception as e:
-            logging.error(f"エラーが発生しました: {str(e)}")
+            current_time = time.time()
+            # エラーログの出力を制限する
+            if current_time - self.last_error_time >= self.error_cooldown:
+                logging.error(f"エラーが発生しました: {str(e)}")
+                self.last_error_time = current_time
             return False
 
     def run(self):
