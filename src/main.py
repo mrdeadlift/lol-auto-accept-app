@@ -107,9 +107,13 @@ class AutoAcceptGUI:
         
         def monitor():
             while self.monitoring:
-                if self.auto_accept.scan_screen() and self.auto_stop_var.get():
-                    self.stop_monitoring()
+                is_accepted = self.auto_accept.scan_screen() and self.auto_stop_var.get()
+                if is_accepted:
+                    # Set monitoring to false first to avoid recursion in stop_monitoring
+                    self.monitoring = False
                     self.status_label.config(text="承認完了 - 停止中")
+                    self.start_button.config(state=tk.NORMAL)
+                    self.stop_button.config(state=tk.DISABLED)
                     break
                 time.sleep(1)
         
@@ -117,12 +121,13 @@ class AutoAcceptGUI:
         self.monitor_thread.start()
 
     def stop_monitoring(self):
-        self.monitoring = False
-        self.start_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        self.status_label.config(text="停止中")
-        if self.monitor_thread:
-            self.monitor_thread.join(timeout=1)
+        if self.monitoring:
+            self.monitoring = False
+            if self.monitor_thread and self.monitor_thread.is_alive():
+                self.monitor_thread.join(timeout=1)
+            self.start_button.config(state=tk.NORMAL)
+            self.stop_button.config(state=tk.DISABLED)
+            self.status_label.config(text="停止中")
 
     def exit_application(self):
         if self.monitoring:
