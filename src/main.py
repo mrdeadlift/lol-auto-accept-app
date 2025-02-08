@@ -8,36 +8,69 @@ import os
 import tkinter as tk
 from tkinter import ttk
 import threading
+from pathlib import Path
+
+def get_log_path():
+    """実行環境に応じてログファイルのパスを取得"""
+    if getattr(sys, 'frozen', False):
+        # exe実行時はexeと同じディレクトリにログを作成
+        return os.path.join(os.path.dirname(sys.executable), 'app.log')
+    else:
+        # 通常実行時はカレントディレクトリにログを作成
+        return 'app.log'
 
 # ログの設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('app.log')
-    ]
-)
+try:
+    log_path = get_log_path()
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_path, encoding='utf-8')
+        ]
+    )
+except Exception as e:
+    # ログファイルの作成に失敗した場合は標準出力のみ使用
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+    logging.warning(f"ログファイルの作成に失敗しました: {str(e)}")
 
 class LoLAutoAccept:
     def __init__(self):
         # pyautoguiの設定
         pyautogui.FAILSAFE = True  # 画面端にマウスを移動で停止
         
-        # 実行ファイルかソースコードかを判断してパスを設定
-        if getattr(sys, 'frozen', False):
-            # 実行ファイルとして実行している場合
-            application_path = sys._MEIPASS
-        else:
-            # ソースコードとして実行している場合
-            application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        try:
+            # 実行ファイルかソースコードかを判断してパスを設定
+            if getattr(sys, 'frozen', False):
+                # exe実行時の画像パスの探索順序
+                possible_paths = [
+                    os.path.join(sys._MEIPASS, 'accept_button.png'),
+                    os.path.join(os.path.dirname(sys.executable), 'accept_button.png'),
+                    os.path.join(os.getcwd(), 'accept_button.png')
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        self.button_image = path
+                        break
+                else:
+                    raise FileNotFoundError("ボタン画像が見つかりませんでした")
+            else:
+                # ソースコード実行時
+                application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                self.button_image = os.path.join(application_path, 'accept_button.png')
+                if not os.path.exists(self.button_image):
+                    raise FileNotFoundError(f"ボタン画像が見つかりません: {self.button_image}")
             
-        self.button_image = os.path.join(application_path, 'accept_button.png')
-        
-        # ボタン画像が存在しない場合は終了
-        if not os.path.exists(self.button_image):
-            logging.error(f"ボタン画像 '{self.button_image}' が見つかりません。")
-            logging.info("プログラムを終了します。")
+            logging.info(f"ボタン画像を読み込みました: {self.button_image}")
+                
+        except Exception as e:
+            logging.error(f"初期化中にエラーが発生しました: {str(e)}")
             sys.exit(1)
         
         # エラーログの制御用変数
@@ -47,8 +80,8 @@ class LoLAutoAccept:
     def scan_screen(self):
         """画面をスキャンしてマッチング画面の承認ボタンを探す"""
         try:
-            # 画面上でボタン画像を探す
-            button_pos = pyautogui.locateOnScreen(self.button_image, confidence=0.8)
+            # 画面上でボタン画像を探す（より寛容なマッチング）
+            button_pos = pyautogui.locateOnScreen(self.button_image, confidence=0.7)
             
             if button_pos is not None:
                 # ボタンが見つかった場合、中央をクリック
@@ -115,9 +148,14 @@ class AutoAcceptGUI:
         self.status_label = ttk.Label(main_frame, text="待機中")
         self.status_label.grid(row=3, column=0, columnspan=2, pady=5)
         
-        self.auto_accept = LoLAutoAccept()
-        self.monitoring = False
-        self.monitor_thread = None
+        try:
+            self.auto_accept = LoLAutoAccept()
+            self.monitoring = False
+            self.monitor_thread = None
+        except Exception as e:
+            logging.error(f"GUIの初期化中にエラーが発生しました: {str(e)}")
+            self.root.destroy()
+            sys.exit(1)
 
     def start_monitoring(self):
         self.monitoring = True
@@ -127,14 +165,17 @@ class AutoAcceptGUI:
         
         def monitor():
             while self.monitoring:
-                is_accepted = self.auto_accept.scan_screen() and self.auto_stop_var.get()
-                if is_accepted:
-                    # Set monitoring to false first to avoid recursion in stop_monitoring
-                    self.monitoring = False
-                    self.status_label.config(text="承認完了 - 停止中")
-                    self.start_button.config(state=tk.NORMAL)
-                    self.stop_button.config(state=tk.DISABLED)
-                    break
+                try:
+                    is_accepted = self.auto_accept.scan_screen() and self.auto_stop_var.get()
+                    if is_accepted:
+                        # Set monitoring to false first to avoid recursion in stop_monitoring
+                        self.monitoring = False
+                        self.status_label.config(text="承認完了 - 停止中")
+                        self.start_button.config(state=tk.NORMAL)
+                        self.stop_button.config(state=tk.DISABLED)
+                        break
+                except Exception as e:
+                    logging.error(f"監視中にエラーが発生しました: {str(e)}")
                 time.sleep(1)
         
         self.monitor_thread = threading.Thread(target=monitor, daemon=True)
