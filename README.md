@@ -22,9 +22,25 @@ LOL は最高のゲームです。
 - 監視の開始/停止機能
 - ログ機能
 
+## Python のインストール
+
+1. [Python 公式サイト](https://www.python.org/downloads/)にアクセスします
+2. 「Download Python」ボタンをクリックしてインストーラーをダウンロードします
+   - Windows: 64-bit Windows installer を選択
+   - macOS: macOS 64-bit universal2 installer を選択
+3. ダウンロードしたインストーラーを実行します
+4. インストール時に「Add python.exe to PATH」にチェックを入れることを確認してください
+5. インストールが完了したらコマンドプロンプト（Windows）またはターミナル（macOS）を開き、以下のコマンドで Python がインストールされたことを確認します：
+
+```bash
+python --version
+```
+
+バージョン番号が表示されればインストール成功です。
+
 ## 必要要件
 
-- Python 3.x
+- Python 3.x（3.8 以上を推奨）
 - 以下の Python パッケージ:
   - pyautogui==0.9.54
   - opencv-python==4.8.1.78
