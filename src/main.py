@@ -143,7 +143,7 @@ class AutoAcceptGUI:
         
         # 自動開始チェックボックス
         self.auto_start_var = tk.BooleanVar(value=True)  # デフォルトでオン
-        self.auto_start_checkbox = ttk.Checkbutton(main_frame, text="画像検出時に自動開始", variable=self.auto_start_var)
+        self.auto_start_checkbox = ttk.Checkbutton(main_frame, text="マッチング時に自動開始", variable=self.auto_start_var)
         self.auto_start_checkbox.grid(row=2, column=0, columnspan=2, pady=5)
         
         self.exit_button = ttk.Button(main_frame, text="終了", command=self.exit_application)
