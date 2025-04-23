@@ -1,0 +1,10 @@
+{
+    "images": {
+        "accept_button": "accept_button.png",
+        "matching_screen": "matching.png"
+    },
+    "template_matching": {
+        "confidence": 0.7,
+        "interval_sec": 1.0
+    }
+}
