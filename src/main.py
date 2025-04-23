@@ -9,79 +9,62 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 from pathlib import Path
+import json
 
-def get_log_path():
-    """実行環境に応じてログファイルのパスを取得"""
+def get_config_path():
     if getattr(sys, 'frozen', False):
-        # exe実行時はexeと同じディレクトリにログを作成
-        return os.path.join(os.path.dirname(sys.executable), 'app.log')
+        return Path(sys._MEIPASS) / 'config.json'
     else:
-        # 通常実行時はカレントディレクトリにログを作成
-        return 'app.log'
+        return Path(__file__).resolve().parent.parent / 'config.json'
 
-# ログの設定
-try:
-    log_path = get_log_path()
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(log_path, encoding='utf-8')
-        ]
-    )
-except Exception as e:
-    # ログファイルの作成に失敗した場合は標準出力のみ使用
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[logging.StreamHandler(sys.stdout)]
-    )
-    logging.warning(f"ログファイルの作成に失敗しました: {str(e)}")
+def load_config():
+    path = get_config_path()
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except Exception as e:
+            logging.error(f"設定ファイル読み込み失敗: {e}")
+    try:
+        path.write_text(json.dumps(DEFAULT_CONFIG, indent=4), encoding='utf-8')
+        logging.info(f"デフォルト設定作成: {path}")
+    except Exception as e:
+        logging.error(f"設定ファイル作成失敗: {e}")
+    return DEFAULT_CONFIG.copy()
+
+def save_config(config):
+    path = get_config_path()
+    try:
+        path.write_text(json.dumps(config, indent=4), encoding='utf-8')
+        logging.info(f"設定ファイル保存: {path}")
+    except Exception as e:
+        logging.error(f"設定ファイル保存失敗: {e}")
 
 class LoLAutoAccept:
-    def __init__(self):
-        # pyautoguiの設定
-        pyautogui.FAILSAFE = True  # 画面端にマウスを移動で停止
-        
-        try:
-            # 実行ファイルかソースコードかを判断してパスを設定
-            if getattr(sys, 'frozen', False):
-                # exe実行時の画像パスの探索順序
-                possible_paths = [
-                    os.path.join(sys._MEIPASS, 'accept_button.png'),
-                    os.path.join(os.path.dirname(sys.executable), 'accept_button.png'),
-                    os.path.join(os.getcwd(), 'accept_button.png')
-                ]
-                
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        self.button_image = path
-                        break
-                else:
-                    raise FileNotFoundError("ボタン画像が見つかりませんでした")
-            else:
-                # ソースコード実行時
-                application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                self.button_image = os.path.join(application_path, 'accept_button.png')
-                if not os.path.exists(self.button_image):
-                    raise FileNotFoundError(f"ボタン画像が見つかりません: {self.button_image}")
-            
-            logging.info(f"ボタン画像を読み込みました: {self.button_image}")
-                
-        except Exception as e:
-            logging.error(f"初期化中にエラーが発生しました: {str(e)}")
+    def __init__(self, config=None):
+        pyautogui.FAILSAFE = True
+        self.config = config or load_config()
+        self.button_image = self.config['images']['accept_button']
+        # イメージフォルダ
+        if getattr(sys, 'frozen', False):
+            image_dir = sys._MEIPASS
+        else:
+            image_dir = str(Path(__file__).resolve().parent.parent)
+        abs_path = os.path.join(image_dir, self.button_image)
+        if not os.path.exists(abs_path):
+            logging.error(f"ボタン画像が見つかりません: {abs_path}")
             sys.exit(1)
-        
-        # エラーログの制御用変数
+        logging.info(f"ボタン画像読み込み: {self.button_image}")
+        self.button_image_path = abs_path
+        self.confidence = self.config['template_matching']['confidence']
+        self.interval_sec = self.config['template_matching']['interval_sec']
         self.last_error_time = 0
-        self.error_cooldown = 60  # エラーログの出力間隔（秒）
+        self.error_cooldown = 60
 
     def scan_screen(self):
         """画面をスキャンしてマッチング画面の承認ボタンを探す"""
         try:
             # 画面上でボタン画像を探す（より寛容なマッチング）
-            button_pos = pyautogui.locateOnScreen(self.button_image, confidence=0.7)
+            button_pos = pyautogui.locateOnScreen(self.button_image_path, confidence=self.confidence)
             
             if button_pos is not None:
                 # ボタンが見つかった場合、中央をクリック
@@ -111,7 +94,7 @@ class LoLAutoAccept:
             while True:
                 self.scan_screen()
                 # 負荷軽減のため少し待機
-                time.sleep(1)
+                time.sleep(self.interval_sec)
         
         except KeyboardInterrupt:
             logging.info("プログラムを終了します")
@@ -123,7 +106,7 @@ class AutoAcceptGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("LoL Auto Accept")
-        self.root.geometry("300x200")  # ウィンドウサイズを少し大きくします
+        self.root.geometry("300x250")  # ウィンドウサイズを少し大きくします
         
         # メインフレーム
         main_frame = ttk.Frame(self.root, padding="10")
@@ -149,6 +132,12 @@ class AutoAcceptGUI:
         self.exit_button = ttk.Button(main_frame, text="終了", command=self.exit_application)
         self.exit_button.grid(row=3, column=0, columnspan=2, pady=10)
         
+        # # 設定読み込み・保存ボタン
+        # self.load_cfg_btn = ttk.Button(main_frame, text="設定読み込み", command=self.load_settings)
+        # self.load_cfg_btn.grid(row=5, column=0, padx=5, pady=5)
+        # self.save_cfg_btn = ttk.Button(main_frame, text="設定保存", command=self.save_settings)
+        # self.save_cfg_btn.grid(row=5, column=1, padx=5, pady=5)
+        
         # ステータスラベル
         self.status_label = ttk.Label(main_frame, text="待機中")
         self.status_label.grid(row=4, column=0, columnspan=2, pady=5)
@@ -170,8 +159,10 @@ class AutoAcceptGUI:
         """マッチング画像の検出を監視し、検出時に自動で監視を開始するスレッド"""
         def auto_detect():
             logging.info("自動検出を開始しました")
-            # マッチング画像のパスを設定
-            matching_image_path = r"C:\Users\owner\Documents\projects\lol-auto-apply-app\matching.png"
+            rel = self.auto_accept.config['images']['matching_screen']
+            base = getattr(self.auto_accept, 'button_image_path', '')
+            image_dir = os.path.dirname(base) if base else os.getcwd()
+            matching_image_path = os.path.join(image_dir, rel)
             
             # 画像ファイルの存在確認
             if not os.path.exists(matching_image_path):
@@ -188,7 +179,7 @@ class AutoAcceptGUI:
                         
                     if not self.monitoring and self.auto_start_var.get():
                         # マッチング画像を検出
-                        matching_pos = pyautogui.locateOnScreen(matching_image_path, confidence=0.7)
+                        matching_pos = pyautogui.locateOnScreen(matching_image_path, confidence=self.auto_accept.confidence)
                         if matching_pos is not None:
                             logging.info("マッチング画面を検出しました。自動監視を開始します。")
                             # GUIスレッドから実行するために、after()を使用
@@ -205,7 +196,7 @@ class AutoAcceptGUI:
                     logging.error(traceback.format_exc())  # スタックトレースを出力
                     time.sleep(5)  # エラー発生時は長めの待機
                 
-                time.sleep(2)  # 2秒間隔で検出
+                time.sleep(self.auto_accept.interval_sec)  # 設定間隔で検出
         
         self.auto_monitor_thread = threading.Thread(target=auto_detect, daemon=True)
         self.auto_monitor_thread.start()
@@ -247,6 +238,18 @@ class AutoAcceptGUI:
         if self.monitoring:
             self.stop_monitoring()
         self.root.quit()
+
+    def load_settings(self):
+        cfg = load_config()
+        # 設定反映
+        self.auto_accept.config = cfg
+        self.auto_accept.confidence = cfg['template_matching']['confidence']
+        self.auto_accept.interval_sec = cfg['template_matching']['interval_sec']
+        self.status_label.config(text="設定をリロードしました")
+
+    def save_settings(self):
+        save_config(self.auto_accept.config)
+        self.status_label.config(text="設定を保存しました")
 
     def run(self):
         self.root.mainloop()
