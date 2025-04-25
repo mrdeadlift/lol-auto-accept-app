@@ -115,35 +115,48 @@ class AutoAcceptGUI:
     def __init__(self, controller=None):
         self.root = tk.Tk()
         self.root.title("LoL Auto Accept")
-        self.root.geometry("300x250")  # ウィンドウサイズを少し大きくします
+        self.root.geometry("250x220")  # 高さを少し縮小
+        self.root.resizable(False, False)  # ウィンドウサイズを固定
         
         # メインフレーム
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame = ttk.Frame(self.root, padding="5")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # ボタンフレーム
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(5, 10))
         
         # ボタン
-        self.start_button = ttk.Button(main_frame, text="開始", command=self.start_monitoring)
-        self.start_button.grid(row=0, column=0, padx=5, pady=5)
+        self.start_button = ttk.Button(button_frame, text="開始", command=self.start_monitoring)
+        self.start_button.pack(side=tk.LEFT, padx=(0, 5), expand=True, fill=tk.X)
         
-        self.stop_button = ttk.Button(main_frame, text="停止", command=self.stop_monitoring, state=tk.DISABLED)
-        self.stop_button.grid(row=0, column=1, padx=5, pady=5)
+        self.stop_button = ttk.Button(button_frame, text="停止", command=self.stop_monitoring, state=tk.DISABLED)
+        self.stop_button.pack(side=tk.RIGHT, padx=(5, 0), expand=True, fill=tk.X)
 
+        # チェックボックスフレーム
+        checkbox_frame = ttk.Frame(main_frame)
+        checkbox_frame.pack(fill=tk.X, pady=5)
+        
         # 自動停止チェックボックス
         self.auto_stop_var = tk.BooleanVar(value=True)
-        self.auto_stop_checkbox = ttk.Checkbutton(main_frame, text="自動で停止する", variable=self.auto_stop_var)
-        self.auto_stop_checkbox.grid(row=1, column=0, columnspan=2, pady=5)
+        self.auto_stop_checkbox = ttk.Checkbutton(checkbox_frame, text="自動で停止する", variable=self.auto_stop_var)
+        self.auto_stop_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
         # 自動開始チェックボックス
         self.auto_start_var = tk.BooleanVar(value=True)  # デフォルトでオン
-        self.auto_start_checkbox = ttk.Checkbutton(main_frame, text="マッチング時に自動開始", variable=self.auto_start_var)
-        self.auto_start_checkbox.grid(row=2, column=0, columnspan=2, pady=5)
+        self.auto_start_checkbox = ttk.Checkbutton(checkbox_frame, text="マッチング時に自動開始", variable=self.auto_start_var)
+        self.auto_start_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
-        self.exit_button = ttk.Button(main_frame, text="終了", command=self.exit_application)
-        self.exit_button.grid(row=3, column=0, columnspan=2, pady=10)
+        # 終了ボタンフレーム
+        exit_frame = ttk.Frame(main_frame)
+        exit_frame.pack(fill=tk.X, pady=5)
+        
+        self.exit_button = ttk.Button(exit_frame, text="終了", command=self.exit_application)
+        self.exit_button.pack(fill=tk.X)
         
         # ステータスラベル
         self.status_label = ttk.Label(main_frame, text="待機中")
-        self.status_label.grid(row=4, column=0, columnspan=2, pady=5)
+        self.status_label.pack(fill=tk.X, pady=(10, 0))
         
         try:
             # Use provided controller or create a new one
