@@ -1,7 +1,7 @@
 import pyautogui
 import cv2
 import time
-from PIL import ImageGrab, Image
+from PIL import ImageGrab, Image, ImageTk
 import logging
 import sys
 import os
@@ -115,8 +115,11 @@ class AutoAcceptGUI:
     def __init__(self, controller=None):
         self.root = tk.Tk()
         self.root.title("LoL Auto Accept")
-        self.root.geometry("250x200")
+        self.root.geometry("250x220")
         self.root.resizable(False, False)  # ウィンドウサイズを固定
+        
+        # 黒ベースの洗練されたテーマを適用
+        self.configure_dark_theme()
         
         try:
             # Use provided controller or create a new one
@@ -149,50 +152,61 @@ class AutoAcceptGUI:
             # Set window icon if icon exists
             if os.path.exists(icon_path):
                 icon_image = Image.open(icon_path)
-                icon_photo = tk.PhotoImage(file=icon_path)
+                icon_photo = ImageTk.PhotoImage(icon_image)
                 self.root.iconphoto(True, icon_photo)
                 logging.info(f"ウィンドウアイコンを設定しました: {icon_path}")
         except Exception as e:
             logging.error(f"ウィンドウアイコン設定中にエラーが発生しました: {str(e)}")
         
         # メインフレーム
-        main_frame = ttk.Frame(self.root, padding="5")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        self.app_frame = tk.Frame(self.root, bg="#1E1E1E", padx=5, pady=5)
+        self.app_frame.pack(fill=tk.BOTH, expand=True)
         
         # ボタンフレーム
-        button_frame = ttk.Frame(main_frame)
+        button_frame = tk.Frame(self.app_frame, bg="#1E1E1E")
         button_frame.pack(fill=tk.X, pady=(5, 10))
         
         # ボタン
-        self.start_button = ttk.Button(button_frame, text="開始", command=self.start_monitoring)
+        self.start_button = tk.Button(button_frame, text="開始", command=self.start_monitoring, 
+                                     bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A", 
+                                     activeforeground="#FFFFFF", relief=tk.RAISED, bd=1)
         self.start_button.pack(side=tk.LEFT, padx=(0, 5), expand=True, fill=tk.X)
         
-        self.stop_button = ttk.Button(button_frame, text="停止", command=self.stop_monitoring, state=tk.DISABLED)
+        self.stop_button = tk.Button(button_frame, text="停止", command=self.stop_monitoring, 
+                                    bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A", 
+                                    activeforeground="#FFFFFF", relief=tk.RAISED, bd=1,
+                                    state=tk.DISABLED)
         self.stop_button.pack(side=tk.RIGHT, padx=(5, 0), expand=True, fill=tk.X)
 
         # チェックボックスフレーム
-        checkbox_frame = ttk.Frame(main_frame)
+        checkbox_frame = tk.Frame(self.app_frame, bg="#1E1E1E")
         checkbox_frame.pack(fill=tk.X, pady=5)
         
         # 自動停止チェックボックス
         self.auto_stop_var = tk.BooleanVar(value=True)
-        self.auto_stop_checkbox = ttk.Checkbutton(checkbox_frame, text="自動で停止する", variable=self.auto_stop_var)
+        self.auto_stop_checkbox = tk.Checkbutton(checkbox_frame, text="自動で停止する", variable=self.auto_stop_var,
+                                              bg="#1E1E1E", fg="#E0E0E0", selectcolor="#252525",
+                                              activebackground="#1E1E1E", activeforeground="#FFFFFF")
         self.auto_stop_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
         # 自動開始チェックボックス
         self.auto_start_var = tk.BooleanVar(value=True)  # デフォルトでオン
-        self.auto_start_checkbox = ttk.Checkbutton(checkbox_frame, text="マッチング時に自動開始", variable=self.auto_start_var)
+        self.auto_start_checkbox = tk.Checkbutton(checkbox_frame, text="マッチング時に自動開始", variable=self.auto_start_var,
+                                               bg="#1E1E1E", fg="#E0E0E0", selectcolor="#252525",
+                                               activebackground="#1E1E1E", activeforeground="#FFFFFF")
         self.auto_start_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
         # 終了ボタンフレーム
-        exit_frame = ttk.Frame(main_frame)
+        exit_frame = tk.Frame(self.app_frame, bg="#1E1E1E")
         exit_frame.pack(fill=tk.X, pady=5)
         
-        self.exit_button = ttk.Button(exit_frame, text="終了", command=self.exit_application)
+        self.exit_button = tk.Button(exit_frame, text="終了", command=self.exit_application,
+                                   bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A",
+                                   activeforeground="#FFFFFF", relief=tk.RAISED, bd=1)
         self.exit_button.pack(fill=tk.X)
         
         # ステータスラベル
-        self.status_label = ttk.Label(main_frame, text="待機中")
+        self.status_label = tk.Label(self.app_frame, text="待機中", bg="#1E1E1E", fg="#E0E0E0")
         self.status_label.pack(fill=tk.X, pady=(10, 0))
         
         try:
@@ -206,6 +220,102 @@ class AutoAcceptGUI:
             self.root.destroy()
             sys.exit(1)
 
+    def configure_dark_theme(self):
+        """黒ベースの洗練されたテーマを設定"""
+        # ルートウィンドウの背景色を設定
+        self.root.configure(bg="#1E1E1E")
+        
+        # システム全体の設定
+        self.root.option_add("*Background", "#1E1E1E")
+        self.root.option_add("*Foreground", "#E0E0E0")
+        
+        # タイトルバー（上バー）を黒色に設定 - 新しい方法
+        # デフォルトのタイトルバーを非表示にして、カスタムのタイトルバーを作成
+        self.root.overrideredirect(True)  # デフォルトのタイトルバーを非表示
+        
+        # カスタムタイトルバーを作成
+        self.title_bar = tk.Frame(self.root, bg="#000000", relief="flat", bd=0, height=30)
+        self.title_bar.pack(fill=tk.X, side=tk.TOP)
+        
+        # アイコンを取得（システムトレイと同じアイコンを使用）
+        if getattr(sys, 'frozen', False):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = str(Path(__file__).resolve().parent.parent)
+        icon_path = os.path.join(base_dir, 'resources', 'tray_icon.png')
+        
+        # アイコンが存在するか確認
+        if not os.path.exists(icon_path):
+            logging.warning(f"タイトルバーアイコンが見つかりません: {icon_path}")
+            # リソースディレクトリから任意のPNGを探す
+            resources_dir = os.path.join(base_dir, 'resources')
+            if os.path.exists(resources_dir):
+                for file in os.listdir(resources_dir):
+                    if file.endswith('.png'):
+                        icon_path = os.path.join(resources_dir, file)
+                        logging.info(f"代替アイコンを使用します: {icon_path}")
+                        break
+        
+        # タイトルバーにアイコンを追加
+        if os.path.exists(icon_path):
+            try:
+                # 小さいサイズのアイコンを作成
+                icon_img = Image.open(icon_path)
+                icon_img = icon_img.resize((16, 16), Image.LANCZOS)
+                icon_photo = ImageTk.PhotoImage(icon_img)
+                
+                # アイコンラベルを作成
+                self.title_icon = tk.Label(self.title_bar, image=icon_photo, bg="#000000")
+                self.title_icon.image = icon_photo  # 参照を保持
+                self.title_icon.pack(side=tk.LEFT, padx=(5, 0))
+                logging.info(f"タイトルバーにアイコンを追加しました: {icon_path}")
+            except Exception as e:
+                logging.error(f"タイトルバーアイコン設定中にエラーが発生しました: {str(e)}")
+        
+        # タイトルラベル
+        self.title_label = tk.Label(self.title_bar, text="LoL Auto Accept", bg="#000000", fg="#FFFFFF")
+        self.title_label.pack(side=tk.LEFT, padx=10)
+        
+        # 閉じるボタン
+        self.close_button = tk.Button(self.title_bar, text="×", bg="#000000", fg="#FFFFFF", bd=0,
+                                     activebackground="#AA0000", activeforeground="#FFFFFF",
+                                     command=self.hide_window, font=("Arial", 12))
+        self.close_button.pack(side=tk.RIGHT)
+        
+        # 最小化ボタン
+        self.minimize_button = tk.Button(self.title_bar, text="-", bg="#000000", fg="#FFFFFF", bd=0,
+                                       activebackground="#333333", activeforeground="#FFFFFF",
+                                       command=lambda: self.root.iconify(), font=("Arial", 12))
+        self.minimize_button.pack(side=tk.RIGHT)
+        
+        # ウィンドウをドラッグして移動できる機能を実装
+        self.title_bar.bind("<ButtonPress-1>", self.start_move)
+        self.title_bar.bind("<ButtonRelease-1>", self.stop_move)
+        self.title_bar.bind("<B1-Motion>", self.do_move)
+        
+        # アプリフレーム
+        self.app_frame = tk.Frame(self.root, bg="#1E1E1E", padx=5, pady=5)
+        self.app_frame.pack(fill=tk.BOTH, expand=True)
+        
+    def start_move(self, event):
+        """Window drag operation - start"""
+        self.x = event.x
+        self.y = event.y
+
+    def stop_move(self, event):
+        """Window drag operation - stop"""
+        self.x = None
+        self.y = None
+
+    def do_move(self, event):
+        """Window drag operation - move"""
+        if self.x is not None and self.y is not None:
+            deltax = event.x - self.x
+            deltay = event.y - self.y
+            x = self.root.winfo_x() + deltax
+            y = self.root.winfo_y() + deltay
+            self.root.geometry(f"+{x}+{y}")
+        
     def start_auto_detection(self):
         """マッチング画像の検出を監視し、検出時に自動で監視を開始するスレッド"""
         def auto_detect():
@@ -259,7 +369,7 @@ class AutoAcceptGUI:
         """Called by controller when monitoring starts"""
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.status_label.config(text="監視中...")
+        self.status_label.config(text="監視中...", fg="#00FF00")  # 緑色のテキスト
 
     def stop_monitoring(self):
         self.controller.stop()
@@ -268,7 +378,7 @@ class AutoAcceptGUI:
         """Called by controller when monitoring stops"""
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
-        self.status_label.config(text=message)
+        self.status_label.config(text=message, fg="#E0E0E0")  # 通常の文字色に戻す
 
     def exit_application(self):
         self.controller.exit()
@@ -293,11 +403,11 @@ class AutoAcceptGUI:
         self.auto_accept.config = cfg
         self.auto_accept.confidence = cfg['template_matching']['confidence']
         self.auto_accept.interval_sec = cfg['template_matching']['interval_sec']
-        self.status_label.config(text="設定をリロードしました")
+        self.status_label.config(text="設定をリロードしました", fg="#00AAFF")  # 青色のテキスト
 
     def save_settings(self):
         save_config(self.auto_accept.config)
-        self.status_label.config(text="設定を保存しました")
+        self.status_label.config(text="設定を保存しました", fg="#00AAFF")  # 青色のテキスト
 
     def run(self):
         self.root.mainloop()
