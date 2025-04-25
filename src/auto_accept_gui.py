@@ -178,6 +178,17 @@ class AutoAcceptGUI:
         self.title_label = tk.Label(self.title_bar, text="LoL Auto Accept", bg="#000000", fg="#FFFFFF")
         self.title_label.pack(side=tk.LEFT, padx=10)
         
+        # タイトルラベルにもドラッグ機能を追加
+        self.title_label.bind("<ButtonPress-1>", self.start_move)
+        self.title_label.bind("<ButtonRelease-1>", self.stop_move)
+        self.title_label.bind("<B1-Motion>", self.do_move)
+        
+        # タイトルアイコンにもドラッグ機能を追加（存在する場合）
+        if 'title_icon' in self.__dict__:
+            self.title_icon.bind("<ButtonPress-1>", self.start_move)
+            self.title_icon.bind("<ButtonRelease-1>", self.stop_move)
+            self.title_icon.bind("<B1-Motion>", self.do_move)
+        
         # 閉じるボタン
         self.close_button = tk.Button(self.title_bar, text="×", bg="#000000", fg="#FFFFFF", bd=0,
                                      activebackground="#AA0000", activeforeground="#FFFFFF",
