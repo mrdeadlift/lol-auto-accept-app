@@ -10,6 +10,15 @@ from tkinter import ttk
 import threading
 from pathlib import Path
 import json
+import argparse
+from controller import Controller
+from tray_icon import TrayIcon
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def get_config_path():
     if getattr(sys, 'frozen', False):
@@ -103,7 +112,7 @@ class LoLAutoAccept:
             logging.info("プログラムを終了します")
 
 class AutoAcceptGUI:
-    def __init__(self):
+    def __init__(self, controller=None):
         self.root = tk.Tk()
         self.root.title("LoL Auto Accept")
         self.root.geometry("300x250")  # ウィンドウサイズを少し大きくします
@@ -132,23 +141,23 @@ class AutoAcceptGUI:
         self.exit_button = ttk.Button(main_frame, text="終了", command=self.exit_application)
         self.exit_button.grid(row=3, column=0, columnspan=2, pady=10)
         
-        # # 設定読み込み・保存ボタン
-        # self.load_cfg_btn = ttk.Button(main_frame, text="設定読み込み", command=self.load_settings)
-        # self.load_cfg_btn.grid(row=5, column=0, padx=5, pady=5)
-        # self.save_cfg_btn = ttk.Button(main_frame, text="設定保存", command=self.save_settings)
-        # self.save_cfg_btn.grid(row=5, column=1, padx=5, pady=5)
-        
         # ステータスラベル
         self.status_label = ttk.Label(main_frame, text="待機中")
         self.status_label.grid(row=4, column=0, columnspan=2, pady=5)
         
         try:
-            self.auto_accept = LoLAutoAccept()
-            self.monitoring = False
-            self.monitor_thread = None
-            self.auto_monitor_thread = None
+            # Use provided controller or create a new one
+            if controller is None:
+                self.auto_accept = LoLAutoAccept()
+                self.controller = Controller(self.auto_accept, self)
+            else:
+                self.controller = controller
+                self.auto_accept = controller.auto_accept
             
-            # 自動監視の有効化
+            # Configure window close event to hide instead of quit
+            self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
+            
+            # Start auto detection
             self.start_auto_detection()
         except Exception as e:
             logging.error(f"GUIの初期化中にエラーが発生しました: {str(e)}")
@@ -170,14 +179,14 @@ class AutoAcceptGUI:
             else:
                 logging.info(f"マッチング画像を読み込みました: {matching_image_path}")
             
-            while True:
+            while self.controller.running:
                 try:
                     # ファイルの存在を毎回確認
                     if not os.path.exists(matching_image_path):
                         time.sleep(5)  # ファイルがない場合は5秒待機
                         continue
                         
-                    if not self.monitoring and self.auto_start_var.get():
+                    if not self.controller.monitoring and self.auto_start_var.get():
                         # マッチング画像を検出
                         matching_pos = pyautogui.locateOnScreen(matching_image_path, confidence=self.auto_accept.confidence)
                         if matching_pos is not None:
@@ -202,41 +211,38 @@ class AutoAcceptGUI:
         self.auto_monitor_thread.start()
         
     def start_monitoring(self):
-        self.monitoring = True
+        self.controller.start()
+        
+    def update_ui_on_start(self):
+        """Called by controller when monitoring starts"""
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
         self.status_label.config(text="監視中...")
-        
-        def monitor():
-            while self.monitoring:
-                try:
-                    is_accepted = self.auto_accept.scan_screen() and self.auto_stop_var.get()
-                    if is_accepted:
-                        # Set monitoring to false first to avoid recursion in stop_monitoring
-                        self.monitoring = False
-                        self.status_label.config(text="承認完了 - 停止中")
-                        self.start_button.config(state=tk.NORMAL)
-                        self.stop_button.config(state=tk.DISABLED)
-                        break
-                except Exception as e:
-                    logging.error(f"監視中にエラーが発生しました: {str(e)}")
-                time.sleep(1)
-        
-        self.monitor_thread = threading.Thread(target=monitor, daemon=True)
-        self.monitor_thread.start()
 
     def stop_monitoring(self):
-        if self.monitoring:
-            self.monitoring = False
-            if self.monitor_thread and self.monitor_thread.is_alive():
-                self.monitor_thread.join(timeout=1)
-            self.start_button.config(state=tk.NORMAL)
-            self.stop_button.config(state=tk.DISABLED)
-            self.status_label.config(text="停止中")
+        self.controller.stop()
+        
+    def update_ui_on_stop(self, message="停止中"):
+        """Called by controller when monitoring stops"""
+        self.start_button.config(state=tk.NORMAL)
+        self.stop_button.config(state=tk.DISABLED)
+        self.status_label.config(text=message)
 
     def exit_application(self):
-        if self.monitoring:
-            self.stop_monitoring()
+        self.controller.exit()
+
+    def hide_window(self):
+        """Hide the window instead of quitting the application"""
+        self.root.withdraw()
+        
+    def show(self):
+        """Show the window and bring it to front"""
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def quit(self):
+        """Quit the application"""
         self.root.quit()
 
     def load_settings(self):
@@ -254,6 +260,64 @@ class AutoAcceptGUI:
     def run(self):
         self.root.mainloop()
 
+# Define DEFAULT_CONFIG if it doesn't exist
+DEFAULT_CONFIG = {
+    "images": {
+        "accept_button": "accept_button.png",
+        "matching_screen": "matching.png"
+    },
+    "template_matching": {
+        "confidence": 0.7,
+        "interval_sec": 1.0
+    }
+}
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='LoL Auto Accept - マッチングの自動承認ツール')
+    parser.add_argument('--nogui', action='store_true', help='GUIを表示せずにバックグラウンドで実行')
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    gui = AutoAcceptGUI()
-    gui.run()
+    # Parse command line arguments
+    args = parse_arguments()
+    
+    # Create the auto accept instance
+    auto_accept = LoLAutoAccept()
+    
+    if args.nogui:
+        # Run in background mode without GUI
+        controller = Controller(auto_accept)
+        tray_icon = TrayIcon(controller)
+        tray_icon.run()
+        
+        # Start monitoring automatically in nogui mode
+        controller.start()
+        
+        # Keep the main thread alive
+        try:
+            while controller.running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.info("キーボード割り込みによりプログラムを終了します")
+        finally:
+            controller.exit()
+    else:
+        # Run with GUI
+        controller = Controller(auto_accept)
+        gui = AutoAcceptGUI(controller)
+        
+        # Set the controller's GUI reference
+        controller.gui = gui
+        
+        # Create and run the tray icon
+        tray_icon = TrayIcon(controller)
+        tray_icon.run()
+        
+        # Run the GUI
+        gui.run()
+        
+        # Clean up tray icon when GUI exits
+        try:
+            tray_icon.shutdown()
+        except Exception as e:
+            logging.error(f"終了時にエラーが発生しました: {str(e)}")
