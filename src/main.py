@@ -1,7 +1,7 @@
 import pyautogui
 import cv2
 import time
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import logging
 import sys
 import os
@@ -115,8 +115,45 @@ class AutoAcceptGUI:
     def __init__(self, controller=None):
         self.root = tk.Tk()
         self.root.title("LoL Auto Accept")
-        self.root.geometry("250x220")  # 高さを少し縮小
+        self.root.geometry("250x200")
         self.root.resizable(False, False)  # ウィンドウサイズを固定
+        
+        try:
+            # Use provided controller or create a new one
+            if controller is None:
+                self.auto_accept = LoLAutoAccept()
+                self.controller = Controller(self.auto_accept, self)
+            else:
+                self.controller = controller
+                self.auto_accept = controller.auto_accept
+            
+            # Set window icon to match tray icon
+            if getattr(sys, 'frozen', False):
+                base_dir = sys._MEIPASS
+            else:
+                base_dir = str(Path(__file__).resolve().parent.parent)
+            icon_path = os.path.join(base_dir, 'resources', 'tray_icon.png')
+            
+            # Check if icon exists
+            if not os.path.exists(icon_path):
+                logging.warning(f"ウィンドウアイコンが見つかりません: {icon_path}")
+                # Try to find any PNG in resources
+                resources_dir = os.path.join(base_dir, 'resources')
+                if os.path.exists(resources_dir):
+                    for file in os.listdir(resources_dir):
+                        if file.endswith('.png'):
+                            icon_path = os.path.join(resources_dir, file)
+                            logging.info(f"代替アイコンを使用します: {icon_path}")
+                            break
+            
+            # Set window icon if icon exists
+            if os.path.exists(icon_path):
+                icon_image = Image.open(icon_path)
+                icon_photo = tk.PhotoImage(file=icon_path)
+                self.root.iconphoto(True, icon_photo)
+                logging.info(f"ウィンドウアイコンを設定しました: {icon_path}")
+        except Exception as e:
+            logging.error(f"ウィンドウアイコン設定中にエラーが発生しました: {str(e)}")
         
         # メインフレーム
         main_frame = ttk.Frame(self.root, padding="5")
@@ -159,14 +196,6 @@ class AutoAcceptGUI:
         self.status_label.pack(fill=tk.X, pady=(10, 0))
         
         try:
-            # Use provided controller or create a new one
-            if controller is None:
-                self.auto_accept = LoLAutoAccept()
-                self.controller = Controller(self.auto_accept, self)
-            else:
-                self.controller = controller
-                self.auto_accept = controller.auto_accept
-            
             # Configure window close event to hide instead of quit
             self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
             
