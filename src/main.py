@@ -118,6 +118,9 @@ class AutoAcceptGUI:
         self.root.geometry("250x200")
         self.root.resizable(False, False)  # ウィンドウサイズを固定
         
+        # 黒ベースの洗練されたテーマを適用
+        self.configure_dark_theme()
+        
         try:
             # Use provided controller or create a new one
             if controller is None:
@@ -156,43 +159,54 @@ class AutoAcceptGUI:
             logging.error(f"ウィンドウアイコン設定中にエラーが発生しました: {str(e)}")
         
         # メインフレーム
-        main_frame = ttk.Frame(self.root, padding="5")
+        main_frame = tk.Frame(self.root, bg="#1E1E1E", padx=5, pady=5)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # ボタンフレーム
-        button_frame = ttk.Frame(main_frame)
+        button_frame = tk.Frame(main_frame, bg="#1E1E1E")
         button_frame.pack(fill=tk.X, pady=(5, 10))
         
         # ボタン
-        self.start_button = ttk.Button(button_frame, text="開始", command=self.start_monitoring)
+        self.start_button = tk.Button(button_frame, text="開始", command=self.start_monitoring, 
+                                     bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A", 
+                                     activeforeground="#FFFFFF", relief=tk.RAISED, bd=1)
         self.start_button.pack(side=tk.LEFT, padx=(0, 5), expand=True, fill=tk.X)
         
-        self.stop_button = ttk.Button(button_frame, text="停止", command=self.stop_monitoring, state=tk.DISABLED)
+        self.stop_button = tk.Button(button_frame, text="停止", command=self.stop_monitoring, 
+                                    bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A", 
+                                    activeforeground="#FFFFFF", relief=tk.RAISED, bd=1,
+                                    state=tk.DISABLED)
         self.stop_button.pack(side=tk.RIGHT, padx=(5, 0), expand=True, fill=tk.X)
 
         # チェックボックスフレーム
-        checkbox_frame = ttk.Frame(main_frame)
+        checkbox_frame = tk.Frame(main_frame, bg="#1E1E1E")
         checkbox_frame.pack(fill=tk.X, pady=5)
         
         # 自動停止チェックボックス
         self.auto_stop_var = tk.BooleanVar(value=True)
-        self.auto_stop_checkbox = ttk.Checkbutton(checkbox_frame, text="自動で停止する", variable=self.auto_stop_var)
+        self.auto_stop_checkbox = tk.Checkbutton(checkbox_frame, text="自動で停止する", variable=self.auto_stop_var,
+                                              bg="#1E1E1E", fg="#E0E0E0", selectcolor="#252525",
+                                              activebackground="#1E1E1E", activeforeground="#FFFFFF")
         self.auto_stop_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
         # 自動開始チェックボックス
         self.auto_start_var = tk.BooleanVar(value=True)  # デフォルトでオン
-        self.auto_start_checkbox = ttk.Checkbutton(checkbox_frame, text="マッチング時に自動開始", variable=self.auto_start_var)
+        self.auto_start_checkbox = tk.Checkbutton(checkbox_frame, text="マッチング時に自動開始", variable=self.auto_start_var,
+                                               bg="#1E1E1E", fg="#E0E0E0", selectcolor="#252525",
+                                               activebackground="#1E1E1E", activeforeground="#FFFFFF")
         self.auto_start_checkbox.pack(anchor=tk.W, pady=(0, 5))
         
         # 終了ボタンフレーム
-        exit_frame = ttk.Frame(main_frame)
+        exit_frame = tk.Frame(main_frame, bg="#1E1E1E")
         exit_frame.pack(fill=tk.X, pady=5)
         
-        self.exit_button = ttk.Button(exit_frame, text="終了", command=self.exit_application)
+        self.exit_button = tk.Button(exit_frame, text="終了", command=self.exit_application,
+                                   bg="#252525", fg="#E0E0E0", activebackground="#3A3A3A",
+                                   activeforeground="#FFFFFF", relief=tk.RAISED, bd=1)
         self.exit_button.pack(fill=tk.X)
         
         # ステータスラベル
-        self.status_label = ttk.Label(main_frame, text="待機中")
+        self.status_label = tk.Label(main_frame, text="待機中", bg="#1E1E1E", fg="#E0E0E0")
         self.status_label.pack(fill=tk.X, pady=(10, 0))
         
         try:
@@ -205,6 +219,15 @@ class AutoAcceptGUI:
             logging.error(f"GUIの初期化中にエラーが発生しました: {str(e)}")
             self.root.destroy()
             sys.exit(1)
+
+    def configure_dark_theme(self):
+        """黒ベースの洗練されたテーマを設定"""
+        # ルートウィンドウの背景色を設定
+        self.root.configure(bg="#1E1E1E")
+        
+        # システム全体の設定
+        self.root.option_add("*Background", "#1E1E1E")
+        self.root.option_add("*Foreground", "#E0E0E0")
 
     def start_auto_detection(self):
         """マッチング画像の検出を監視し、検出時に自動で監視を開始するスレッド"""
@@ -259,7 +282,7 @@ class AutoAcceptGUI:
         """Called by controller when monitoring starts"""
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
-        self.status_label.config(text="監視中...")
+        self.status_label.config(text="監視中...", fg="#00FF00")  # 緑色のテキスト
 
     def stop_monitoring(self):
         self.controller.stop()
@@ -268,7 +291,7 @@ class AutoAcceptGUI:
         """Called by controller when monitoring stops"""
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
-        self.status_label.config(text=message)
+        self.status_label.config(text=message, fg="#E0E0E0")  # 通常の文字色に戻す
 
     def exit_application(self):
         self.controller.exit()
@@ -293,11 +316,11 @@ class AutoAcceptGUI:
         self.auto_accept.config = cfg
         self.auto_accept.confidence = cfg['template_matching']['confidence']
         self.auto_accept.interval_sec = cfg['template_matching']['interval_sec']
-        self.status_label.config(text="設定をリロードしました")
+        self.status_label.config(text="設定をリロードしました", fg="#00AAFF")  # 青色のテキスト
 
     def save_settings(self):
         save_config(self.auto_accept.config)
-        self.status_label.config(text="設定を保存しました")
+        self.status_label.config(text="設定を保存しました", fg="#00AAFF")  # 青色のテキスト
 
     def run(self):
         self.root.mainloop()
