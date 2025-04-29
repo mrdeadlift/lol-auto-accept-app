@@ -18,7 +18,7 @@ class LoLAutoAccept:
             image_dir = sys._MEIPASS
         else:
             image_dir = str(Path(__file__).resolve().parent.parent)
-        abs_path = os.path.join(image_dir, self.button_image)
+        abs_path = os.path.join(image_dir, 'resources', self.button_image)
         if not os.path.exists(abs_path):
             logging.error(f"ボタン画像が見つかりません: {abs_path}")
             sys.exit(1)
