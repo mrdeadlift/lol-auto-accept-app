@@ -30,22 +30,26 @@ class TrayIcon:
                         break
         
         try:
+            # Store monitoring state - initialize from controller
+            self.is_monitoring = controller.monitoring
+            
+            # Create the icon
             self.icon = pystray.Icon(
                 'lol_auto_accept', 
                 Image.open(icon_path), 
                 'LoL Auto Accept', 
-                menu=self._build_menu()
+                menu=self._create_menu()
             )
             logging.info(f"トレイアイコンを初期化しました: {icon_path}")
         except Exception as e:
             logging.error(f"トレイアイコンの初期化に失敗しました: {str(e)}")
             raise
     
-    def _build_menu(self):
+    def _create_menu(self):
         return pystray.Menu(
             pystray.MenuItem('開く', self._handle_open),
-            pystray.MenuItem('開始', self._handle_start),
-            pystray.MenuItem('停止', self._handle_stop),
+            pystray.MenuItem('開始', self._handle_start, checked=lambda item: self.is_monitoring),
+            pystray.MenuItem('停止', self._handle_stop, checked=lambda item: not self.is_monitoring),
             pystray.MenuItem('終了', self._handle_exit)
         )
     
@@ -62,11 +66,23 @@ class TrayIcon:
         self.shutdown()
         self.controller.exit()
     
+    def update_menu_state(self, is_monitoring):
+        """Update the tray icon menu to reflect the current monitoring state"""
+        self.is_monitoring = is_monitoring
+        if hasattr(self, 'icon') and self.icon.visible:
+            # For pystray, we don't need to explicitly update the menu
+            # The lambda functions in the menu items will use the updated self.is_monitoring value
+            logging.info(f"トレイメニューの状態を更新しました: 監視{'中' if is_monitoring else '停止中'}")
+    
     def run(self):
         """Run the tray icon in a separate thread"""
         self.tray_thread = Thread(target=self.icon.run, daemon=True)
         self.tray_thread.start()
         logging.info("システムトレイアイコンを起動しました")
+        
+        # Sync initial state with controller - no need to call update_menu_state here
+        # as the menu will be created with the correct initial state
+        self.is_monitoring = self.controller.monitoring
     
     def shutdown(self):
         """Stop the tray icon"""

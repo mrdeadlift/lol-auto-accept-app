@@ -25,6 +25,8 @@ if __name__ == "__main__":
         # Run in background mode without GUI
         controller = Controller(auto_accept)
         tray_icon = TrayIcon(controller)
+        # Set tray_icon reference in controller
+        controller.tray_icon = tray_icon
         tray_icon.run()
         
         # Start monitoring automatically in nogui mode
@@ -35,7 +37,7 @@ if __name__ == "__main__":
             while controller.running:
                 time.sleep(1)
         except KeyboardInterrupt:
-            logging.info("キーボード割り込みによりプログラムを終了します")
+            logging.info("キーボード割り込みによりプログラムを終了します。")
         finally:
             controller.exit()
     else:
@@ -48,6 +50,8 @@ if __name__ == "__main__":
         
         # Create and run the tray icon
         tray_icon = TrayIcon(controller)
+        # Set tray_icon reference in controller
+        controller.tray_icon = tray_icon
         tray_icon.run()
         
         # Run the GUI

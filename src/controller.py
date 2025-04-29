@@ -10,6 +10,7 @@ class Controller:
         self.monitoring = False
         self.monitor_thread = None
         self.running = True
+        self.tray_icon = None
     
     def start(self):
         """Start monitoring for accept button"""
@@ -19,6 +20,9 @@ class Controller:
         self.monitoring = True
         if self.gui:
             self.gui.update_ui_on_start()
+        # Update tray icon if available
+        if self.tray_icon:
+            self.tray_icon.update_menu_state(True)
         
         def monitor():
             logging.info("監視を開始しました")
@@ -30,6 +34,9 @@ class Controller:
                         self.monitoring = False
                         if self.gui:
                             self.gui.update_ui_on_stop("承認完了 - 停止中")
+                        # Update tray icon if available
+                        if self.tray_icon:
+                            self.tray_icon.update_menu_state(False)
                         break
                 except Exception as e:
                     logging.error(f"監視中にエラーが発生しました: {str(e)}")
@@ -49,6 +56,9 @@ class Controller:
         
         if self.gui:
             self.gui.update_ui_on_stop()
+        # Update tray icon if available
+        if self.tray_icon:
+            self.tray_icon.update_menu_state(False)
     
     def show_window(self):
         """Show the GUI window if it exists"""
