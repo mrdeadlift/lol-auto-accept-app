@@ -131,85 +131,10 @@ class AutoAcceptGUI:
         self.root.option_add("*Background", "#1E1E1E")
         self.root.option_add("*Foreground", "#E0E0E0")
         
-        # タイトルバー（上バー）を黒色に設定 - 新しい方法
-        # デフォルトのタイトルバーを非表示にして、カスタムのタイトルバーを作成
-        self.root.overrideredirect(True)  # デフォルトのタイトルバーを非表示
-        
-        # カスタムタイトルバーを作成
-        self.title_bar = tk.Frame(self.root, bg="#000000", relief="flat", bd=0, height=30)
-        self.title_bar.pack(fill=tk.X, side=tk.TOP)
-        
-        # アイコンを取得（システムトレイと同じアイコンを使用）
-        if getattr(sys, 'frozen', False):
-            base_dir = sys._MEIPASS
-        else:
-            base_dir = str(Path(__file__).resolve().parent.parent)
-        icon_path = os.path.join(base_dir, 'resources', 'tray_icon.png')
-        
-        # アイコンが存在するか確認
-        if not os.path.exists(icon_path):
-            logging.warning(f"タイトルバーアイコンが見つかりません: {icon_path}")
-            # リソースディレクトリから任意のPNGを探す
-            resources_dir = os.path.join(base_dir, 'resources')
-            if os.path.exists(resources_dir):
-                for file in os.listdir(resources_dir):
-                    if file.endswith('.png'):
-                        icon_path = os.path.join(resources_dir, file)
-                        logging.info(f"代替アイコンを使用します: {icon_path}")
-                        break
-        
-        # タイトルバーにアイコンを追加
-        if os.path.exists(icon_path):
-            try:
-                # 小さいサイズのアイコンを作成
-                icon_img = Image.open(icon_path)
-                icon_img = icon_img.resize((16, 16), Image.LANCZOS)
-                icon_photo = ImageTk.PhotoImage(icon_img)
-                
-                # アイコンラベルを作成
-                self.title_icon = tk.Label(self.title_bar, image=icon_photo, bg="#000000")
-                self.title_icon.image = icon_photo  # 参照を保持
-                self.title_icon.pack(side=tk.LEFT, padx=(5, 0))
-                logging.info(f"タイトルバーにアイコンを追加しました: {icon_path}")
-            except Exception as e:
-                logging.error(f"タイトルバーアイコン設定中にエラーが発生しました: {str(e)}")
-        
-        # タイトルラベル
-        self.title_label = tk.Label(self.title_bar, text="LoL Auto Accept", bg="#000000", fg="#FFFFFF")
-        self.title_label.pack(side=tk.LEFT, padx=10)
-        
-        # タイトルラベルにもドラッグ機能を追加
-        self.title_label.bind("<ButtonPress-1>", self.start_move)
-        self.title_label.bind("<ButtonRelease-1>", self.stop_move)
-        self.title_label.bind("<B1-Motion>", self.do_move)
-        
-        # タイトルアイコンにもドラッグ機能を追加（存在する場合）
-        if 'title_icon' in self.__dict__:
-            self.title_icon.bind("<ButtonPress-1>", self.start_move)
-            self.title_icon.bind("<ButtonRelease-1>", self.stop_move)
-            self.title_icon.bind("<B1-Motion>", self.do_move)
-        
-        # 閉じるボタン
-        self.close_button = tk.Button(self.title_bar, text="×", bg="#000000", fg="#FFFFFF", bd=0,
-                                     activebackground="#AA0000", activeforeground="#FFFFFF",
-                                     command=self.hide_window, font=("Arial", 12))
-        self.close_button.pack(side=tk.RIGHT)
-        
-        # 最小化ボタン
-        self.minimize_button = tk.Button(self.title_bar, text="-", bg="#000000", fg="#FFFFFF", bd=0,
-                                       activebackground="#333333", activeforeground="#FFFFFF",
-                                       command=lambda: self.root.iconify(), font=("Arial", 12))
-        self.minimize_button.pack(side=tk.RIGHT)
-        
-        # ウィンドウをドラッグして移動できる機能を実装
-        self.title_bar.bind("<ButtonPress-1>", self.start_move)
-        self.title_bar.bind("<ButtonRelease-1>", self.stop_move)
-        self.title_bar.bind("<B1-Motion>", self.do_move)
-        
-        # アプリフレーム
+        # メインのアプリフレーム
         self.app_frame = tk.Frame(self.root, bg="#1E1E1E", padx=5, pady=5)
         self.app_frame.pack(fill=tk.BOTH, expand=True)
-        
+
     def start_move(self, event):
         """Window drag operation - start"""
         self.x = event.x
@@ -297,8 +222,8 @@ class AutoAcceptGUI:
         self.controller.exit()
 
     def hide_window(self):
-        """Hide the window instead of quitting the application"""
-        self.root.withdraw()
+        """最小化してタスクバーに残す"""
+        self.root.iconify()
         
     def show(self):
         """Show the window and bring it to front"""
