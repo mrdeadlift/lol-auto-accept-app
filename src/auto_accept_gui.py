@@ -37,26 +37,39 @@ class AutoAcceptGUI:
                 base_dir = sys._MEIPASS
             else:
                 base_dir = str(Path(__file__).resolve().parent.parent)
-            icon_path = os.path.join(base_dir, 'resources', 'tray_icon.png')
+                
+            # Try to use the ICO file for the taskbar icon
+            icon_path = os.path.join(base_dir, 'resources', 'tray_icon.ico')
             
+            # If ICO file doesn't exist, use the PNG as fallback
+            if not os.path.exists(icon_path):
+                icon_path = os.path.join(base_dir, 'resources', 'tray_icon.png')
+                logging.info(f"ICOファイルが見つからないため、PNGファイルを使用します: {icon_path}")
+                
             # Check if icon exists
             if not os.path.exists(icon_path):
                 logging.warning(f"ウィンドウアイコンが見つかりません: {icon_path}")
-                # Try to find any PNG in resources
+                # Try to find any icon in resources
                 resources_dir = os.path.join(base_dir, 'resources')
                 if os.path.exists(resources_dir):
                     for file in os.listdir(resources_dir):
-                        if file.endswith('.png'):
+                        if file.endswith('.ico') or file.endswith('.png'):
                             icon_path = os.path.join(resources_dir, file)
                             logging.info(f"代替アイコンを使用します: {icon_path}")
                             break
             
             # Set window icon if icon exists
             if os.path.exists(icon_path):
-                icon_image = Image.open(icon_path)
-                icon_photo = ImageTk.PhotoImage(icon_image)
-                self.root.iconphoto(True, icon_photo)
-                logging.info(f"ウィンドウアイコンを設定しました: {icon_path}")
+                if icon_path.endswith('.ico'):
+                    # For Windows taskbar icon, use iconbitmap with ICO file
+                    self.root.iconbitmap(icon_path)
+                    logging.info(f"ウィンドウアイコン(ICO)を設定しました: {icon_path}")
+                else:
+                    # Fallback to iconphoto with PNG for non-ICO files
+                    icon_image = Image.open(icon_path)
+                    icon_photo = ImageTk.PhotoImage(icon_image)
+                    self.root.iconphoto(True, icon_photo)
+                    logging.info(f"ウィンドウアイコン(PNG)を設定しました: {icon_path}")
         except Exception as e:
             logging.error(f"ウィンドウアイコン設定中にエラーが発生しました: {str(e)}")
         
