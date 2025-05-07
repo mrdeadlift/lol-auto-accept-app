@@ -9,9 +9,9 @@ from pathlib import Path
 import pyautogui
 from PIL import Image, ImageTk
 
-from .lol_auto_accept import LoLAutoAccept
-from .controller import Controller
-from .config_utils import load_config, save_config
+from lol_auto_accept import LoLAutoAccept
+from controller import Controller
+from config_utils import load_config, save_config
 
 class AutoAcceptGUI:
     def __init__(self, controller=None):
