@@ -1,0 +1,30 @@
+[tool.coverage.run]
+omit = [
+    "*/site-packages/*",
+    "*/test_*.py",
+    "*/tests/*",
+    "*/__pycache__/*",
+    "src/main.py",  # メインエントリーポイントは結合部分のため除外
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError"
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report=term-missing --cov=src --cov-config=pyproject.toml -m 'not e2e'"
+markers = [
+    "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = ["E", "F", "W", "I", "N", "B"]
+ignore = ["E203", "E501"]
