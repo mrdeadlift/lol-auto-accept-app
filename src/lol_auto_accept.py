@@ -6,7 +6,7 @@ import sys
 import os
 from pathlib import Path
 
-from config_utils import load_config
+from .config_utils import load_config
 
 class LoLAutoAccept:
     def __init__(self, config=None):
