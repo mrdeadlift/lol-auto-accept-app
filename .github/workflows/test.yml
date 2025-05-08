@@ -20,4 +20,4 @@ jobs:
           python -m pip install pytest pytest-mock pytest-cov coverage[toml] pytest-xvfb
       - name: Run tests with pytest
         run: |
-          pytest
+          pytest --no-cov
