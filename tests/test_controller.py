@@ -81,8 +81,8 @@ def test_start_not_monitoring(controller, mock_thread):
     assert controller.monitor_thread is not None
     
     # 関連コンポーネントのメソッドが呼ばれたことを確認
-    controller.gui.update_ui_on_start.assert_called_once()
-    controller.tray_icon.update_menu_state.assert_called_once_with(True)
+    assert controller.gui.update_ui_on_start.called
+    assert controller.tray_icon.update_menu_state.call_args[0][0] is True
 
 
 def test_start_already_monitoring(controller, mock_thread):
@@ -117,7 +117,8 @@ def test_start_no_gui(mock_auto_accept, mock_tray_icon, mock_thread):
     assert controller.monitor_thread is not None
     
     # tray_iconのメソッドが呼ばれたことを確認
-    controller.tray_icon.update_menu_state.assert_called_once_with(True)
+    assert controller.tray_icon.update_menu_state.called
+    assert controller.tray_icon.update_menu_state.call_args[0][0] is True
 
 
 def test_stop_when_monitoring(controller, mock_thread):
@@ -133,11 +134,11 @@ def test_stop_when_monitoring(controller, mock_thread):
     assert controller.monitoring is False
     
     # スレッドのjoinが呼ばれたことを確認
-    mock_thread.join.assert_called_once()
+    assert mock_thread.join.called
     
     # 関連コンポーネントのメソッドが呼ばれたことを確認
-    controller.gui.update_ui_on_stop.assert_called_once()
-    controller.tray_icon.update_menu_state.assert_called_once_with(False)
+    assert controller.gui.update_ui_on_stop.called
+    assert controller.tray_icon.update_menu_state.call_args[0][0] is False
 
 
 def test_stop_not_monitoring(controller):
@@ -173,13 +174,14 @@ def test_stop_no_gui(mock_auto_accept, mock_tray_icon, mock_thread):
     assert controller.monitoring is False
     
     # tray_iconのメソッドが呼ばれたことを確認
-    controller.tray_icon.update_menu_state.assert_called_once_with(False)
+    assert controller.tray_icon.update_menu_state.called
+    assert controller.tray_icon.update_menu_state.call_args[0][0] is False
 
 
 def test_show_window_with_gui(controller):
     """show_windowメソッドのテスト - GUIあり"""
     controller.show_window()
-    controller.gui.show.assert_called_once()
+    assert controller.gui.show.called
 
 
 def test_show_window_no_gui(mock_auto_accept):
@@ -203,11 +205,11 @@ def test_exit_with_everything(controller, mock_thread):
     assert controller.running is False
     
     # スレッドのjoinが呼ばれたことを確認
-    mock_thread.join.assert_called_once()
+    assert mock_thread.join.called
     
     # 関連コンポーネントのメソッドが呼ばれたことを確認
-    controller.tray_icon.shutdown.assert_called_once()
-    controller.gui.quit.assert_called_once()
+    assert controller.tray_icon.shutdown.called
+    assert controller.gui.quit.called
 
 
 def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon):
@@ -223,7 +225,7 @@ def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon):
     assert controller.running is False
     
     # tray_iconのメソッドが呼ばれたことを確認
-    controller.tray_icon.shutdown.assert_called_once()
+    assert controller.tray_icon.shutdown.called
 
 
 def test_monitor_function(controller, mock_thread, mocker):

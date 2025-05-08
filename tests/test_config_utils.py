@@ -15,7 +15,7 @@ def test_get_config_path_normal():
         path = get_config_path()
         assert isinstance(path, Path)
         assert path.name == 'config.json'
-        assert 'lol-auto-apply-app' in str(path)
+        assert 'lol-auto-accept-app' in str(path)
 
 
 def test_get_config_path_frozen():
@@ -70,8 +70,7 @@ def test_save_config_success(tmp_path, default_config):
     
     with patch('src.config_utils.get_config_path', return_value=config_path):
         # 設定を保存
-        result = save_config(default_config)
-        assert result is True
+        save_config(default_config)
         
         # ファイルが作成されていることを確認
         assert config_path.exists()
@@ -84,20 +83,20 @@ def test_save_config_success(tmp_path, default_config):
 def test_save_config_permission_error(default_config):
     """保存時の権限エラーテスト"""
     with patch('src.config_utils.get_config_path'), \
-         patch('builtins.open', side_effect=PermissionError("Permission denied")), \
+         patch('pathlib.Path.write_text', side_effect=PermissionError("Permission denied")), \
          patch('src.config_utils.logging.error') as mock_error:
-        result = save_config(default_config)
-        assert result is False
+        # save_config doesn't return anything, so we just check if error logging is called
+        save_config(default_config)
         assert mock_error.called
 
 
 def test_save_config_io_error(default_config):
     """保存時のIOエラーテスト"""
     with patch('src.config_utils.get_config_path'), \
-         patch('builtins.open', side_effect=IOError("IO Error")), \
+         patch('pathlib.Path.write_text', side_effect=IOError("IO Error")), \
          patch('src.config_utils.logging.error') as mock_error:
-        result = save_config(default_config)
-        assert result is False
+        # save_config doesn't return anything, so we just check if error logging is called
+        save_config(default_config)
         assert mock_error.called
 
 
