@@ -2,11 +2,11 @@ import logging
 import sys
 import time
 
-from lol_auto_accept import LoLAutoAccept
-from auto_accept_gui import AutoAcceptGUI
-from controller import Controller
-from tray_icon import TrayIcon
-from config_utils import parse_arguments
+from .lol_auto_accept import LoLAutoAccept
+from .auto_accept_gui import AutoAcceptGUI
+from .controller import Controller
+from .tray_icon import TrayIcon
+from .config_utils import parse_arguments
 
 # Configure logging
 logging.basicConfig(

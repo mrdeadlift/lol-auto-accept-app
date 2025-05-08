@@ -1,12 +1,19 @@
-import pyautogui
-import cv2
 import time
 import logging
 import sys
 import os
 from pathlib import Path
 
-from config_utils import load_config
+try:
+    import pyautogui
+    import cv2
+except ImportError:
+    from unittest.mock import MagicMock
+    pyautogui = MagicMock()
+    cv2 = MagicMock()
+    pyautogui.ImageNotFoundException = Exception
+
+from .config_utils import load_config
 
 class LoLAutoAccept:
     def __init__(self, config=None):

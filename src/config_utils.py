@@ -41,6 +41,12 @@ def save_config(config):
     try:
         path.write_text(json.dumps(config, indent=4), encoding='utf-8')
         logging.info(f"設定ファイル保存: {path}")
+    except PermissionError as e:
+        import logging as log_module
+        log_module.error(f"設定ファイル保存失敗 (権限エラー): {e}")
+    except IOError as e:
+        import logging as log_module
+        log_module.error(f"設定ファイル保存失敗 (IOエラー): {e}")
     except Exception as e:
         logging.error(f"設定ファイル保存失敗: {e}")
 

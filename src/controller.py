@@ -69,6 +69,9 @@ class Controller:
         """Exit the application completely"""
         self.running = False
         self.stop()
+        # Shutdown tray icon if available
+        if self.tray_icon:
+            self.tray_icon.shutdown()
         if self.gui:
             self.gui.quit()
         else:

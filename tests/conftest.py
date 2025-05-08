@@ -4,8 +4,12 @@ import os
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
-import tkinter as tk
 import threading
+
+try:
+    import tkinter as tk
+except ImportError:
+    tk = MagicMock()
 
 # プロジェクトルートをPYTHONPATHに追加
 def pytest_configure():

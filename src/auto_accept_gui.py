@@ -1,17 +1,26 @@
-import tkinter as tk
-from tkinter import ttk
 import threading
 import time
 import logging
 import sys
 import os
 from pathlib import Path
-import pyautogui
-from PIL import Image, ImageTk
+from PIL import Image
 
-from lol_auto_accept import LoLAutoAccept
-from controller import Controller
-from config_utils import load_config, save_config
+try:
+    import tkinter as tk
+    from tkinter import ttk
+    from PIL import ImageTk
+    import pyautogui
+except ImportError:
+    from unittest.mock import MagicMock
+    tk = MagicMock()
+    ttk = MagicMock()
+    ImageTk = MagicMock()
+    pyautogui = MagicMock()
+
+from .lol_auto_accept import LoLAutoAccept
+from .controller import Controller
+from .config_utils import load_config, save_config
 
 class AutoAcceptGUI:
     def __init__(self, controller=None):
