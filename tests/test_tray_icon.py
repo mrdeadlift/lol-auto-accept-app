@@ -23,16 +23,18 @@ def mock_controller():
 
 
 @pytest.fixture
-def tray_icon_instance(mock_controller, mock_pystray, mocker):
+def tray_icon_instance(mock_controller, mock_pystray, mocker, tmp_path):
     """TrayIconインスタンスの作成"""
+    base_dir = str(tmp_path)
+    
     mock_sys = MagicMock()
     mock_sys.frozen = False
     mocker.patch('__main__.__builtins__.__import__', return_value=mock_sys)
     
     # パス関連のモック
-    mocker.patch('pathlib.Path.resolve', return_value=Path('/mock/path'))
+    mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('os.path.join', return_value='/mock/path/resources/tray_icon.png')
+    mocker.patch('os.path.join', return_value=f"{base_dir}/resources/tray_icon.png")
     
     # Pillow Image.openのモック
     image_mock = MagicMock(spec=Image.Image)
@@ -57,16 +59,18 @@ def tray_icon_instance(mock_controller, mock_pystray, mocker):
     return tray_icon
 
 
-def test_init_with_default_icon(mock_controller, mock_pystray, mocker):
+def test_init_with_default_icon(mock_controller, mock_pystray, mocker, tmp_path):
     """デフォルトアイコンでの初期化テスト"""
+    base_dir = str(tmp_path)
+    
     mock_sys = MagicMock()
     mock_sys.frozen = False
     mocker.patch('__main__.__builtins__.__import__', return_value=mock_sys)
     
     # パス関連のモック
-    mocker.patch('pathlib.Path.resolve', return_value=Path('/mock/path'))
+    mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('os.path.join', return_value='/mock/path/resources/tray_icon.png')
+    mocker.patch('os.path.join', return_value=f"{base_dir}/resources/tray_icon.png")
     
     # Imageモック
     image_mock = MagicMock(spec=Image.Image)
@@ -85,10 +89,9 @@ def test_init_with_default_icon(mock_controller, mock_pystray, mocker):
     assert log_info_mock.called
 
 
-def test_init_with_custom_icon(mock_controller, mock_pystray, mocker):
+def test_init_with_custom_icon(mock_controller, mock_pystray, mocker, tmp_path):
     """カスタムアイコンでの初期化テスト"""
-    base_dir = '/mock/path'
-    mocker.patch.object(Path, '__new__', return_value=Path(base_dir))
+    base_dir = str(tmp_path)
     mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     
     # Imageモック
@@ -104,7 +107,7 @@ def test_init_with_custom_icon(mock_controller, mock_pystray, mocker):
     mocker.patch('os.path.join', side_effect=lambda *args: '/'.join(args))
     
     # 自作アイコンパス
-    custom_icon_path = '/custom/icon/path.png'
+    custom_icon_path = f"{base_dir}/custom_icon.png"
     
     # TrayIconをカスタムアイコンで作成
     tray_icon = TrayIcon(mock_controller, icon_path=custom_icon_path)
@@ -116,10 +119,9 @@ def test_init_with_custom_icon(mock_controller, mock_pystray, mocker):
     assert hasattr(tray_icon, 'tray_thread')
 
 
-def test_init_no_icon_found(mock_controller, mock_pystray, mocker):
+def test_init_no_icon_found(mock_controller, mock_pystray, mocker, tmp_path):
     """アイコンが見つからない場合の初期化テスト"""
-    base_dir = '/mock/path'
-    mocker.patch.object(Path, '__new__', return_value=Path(base_dir))
+    base_dir = str(tmp_path)
     mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     
     mock_sys = MagicMock()
@@ -128,7 +130,7 @@ def test_init_no_icon_found(mock_controller, mock_pystray, mocker):
     
     # 最初のパスが存在しないが、resources内に1つはPNGがある状況をモック
     def path_exists_side_effect(path):
-        if path == '/mock/path/resources/tray_icon.png':
+        if path == f"{base_dir}/resources/tray_icon.png":
             return False
         else:
             return True
@@ -138,7 +140,7 @@ def test_init_no_icon_found(mock_controller, mock_pystray, mocker):
     
     # resourcesディレクトリ内のファイルをモック
     def listdir_side_effect(path):
-        if path == '/mock/path/resources':
+        if path == f"{base_dir}/resources":
             return ['alternative.png']
         return []
     
