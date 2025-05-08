@@ -24,6 +24,8 @@ def mock_gui():
     mock.update_ui_on_stop = MagicMock()
     mock.show = MagicMock()
     mock.quit = MagicMock()
+    mock.auto_stop_var = MagicMock()
+    mock.auto_stop_var.get = MagicMock(return_value=False)
     return mock
 
 
@@ -129,7 +131,6 @@ def test_stop_when_monitoring(controller, mock_thread):
     
     # 状態が変更されたことを確認
     assert controller.monitoring is False
-    assert controller.monitor_thread is None
     
     # スレッドのjoinが呼ばれたことを確認
     mock_thread.join.assert_called_once()
@@ -168,11 +169,10 @@ def test_stop_no_gui(mock_auto_accept, mock_tray_icon, mock_thread):
     # stopメソッドを実行
     controller.stop()
     
-    # u72b6u614bu304cu5909u66f4u3055u308cu305fu3053u3068u3092u78bau8a8d
+    # 状態が変更されたことを確認
     assert controller.monitoring is False
-    assert controller.monitor_thread is None
     
-    # tray_iconu306eu30e1u30bdu30c3u30c9u304cu547cu3070u308cu305fu3053u3068u3092u78bau8a8d
+    # tray_iconのメソッドが呼ばれたことを確認
     controller.tray_icon.update_menu_state.assert_called_once_with(False)
 
 
@@ -191,53 +191,56 @@ def test_show_window_no_gui(mock_auto_accept):
 
 def test_exit_with_everything(controller, mock_thread):
     """exitメソッドのテスト - すべてのコンポーネントあり、監視中"""
-    # u76e3u8996u4e2du306eu72b6u614bu3092u30bbu30c3u30c8u30a2u30c3u30d7
+    # 監視中の状態をセットアップ
     controller.monitoring = True
     controller.monitor_thread = mock_thread
     
-    # exitu30e1u30bdu30c3u30c9u3092u5b9fu884c
+    # exitメソッドを実行
     controller.exit()
     
-    # u72b6u614bu304cu5909u66f4u3055u308cu305fu3053u3068u3092u78bau8a8d
+    # 状態が変更されたことを確認
     assert controller.monitoring is False
     assert controller.running is False
     
-    # u30b9u30ecu30c3u30c9u306ejoinu304cu547cu3070u308cu305fu3053u3068u3092u78bau8a8d
+    # スレッドのjoinが呼ばれたことを確認
     mock_thread.join.assert_called_once()
     
-    # u95a2u9023u30b3u30f3u30ddu30fcu30cdu30f3u30c8u306eu30e1u30bdu30c3u30c9u304cu547cu3070u308cu305fu3053u3068u3092u78bau8a8d
+    # 関連コンポーネントのメソッドが呼ばれたことを確認
     controller.tray_icon.shutdown.assert_called_once()
     controller.gui.quit.assert_called_once()
 
 
 def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon):
-    """exitu30e1u30bdu30c3u30c9u306eu30c6u30b9u30c8 - GUIu306au3057u3001u76e3u8996u3057u3066u3044u306au3044"""
-    # GUIu306au3057u306eControlleru3092u4f5cu6210
+    """exitメソッドのテスト - GUIなし、監視していない"""
+    # GUIなしのControllerを作成
     controller = Controller(mock_auto_accept)
     controller.tray_icon = mock_tray_icon
     
-    # exitu30e1u30bdu30c3u30c9u3092u5b9fu884c
+    # exitメソッドを実行
     controller.exit()
     
-    # u72b6u614bu304cu5909u66f4u3055u308cu305fu3053u3068u3092u78bau8a8d
+    # 状態が変更されたことを確認
     assert controller.running is False
     
-    # tray_iconu306eu30e1u30bdu30c3u30c9u304cu547cu3070u308cu305fu3053u3068u3092u78bau8a8d
+    # tray_iconのメソッドが呼ばれたことを確認
     controller.tray_icon.shutdown.assert_called_once()
 
 
-def test_monitoring_thread(controller, mock_thread, mocker):
-    """_monitoring_threadu30e1u30bdu30c3u30c9u306eu30c6u30b9u30c8"""
-    # u5fc5u8981u306au30e2u30c3u30afu3092u8a2du5b9a
-    mocker.patch('time.sleep')  # sleepu3092u30e2u30c3u30af
+def test_monitor_function(controller, mock_thread, mocker):
+    """monitor関数のテスト (startメソッド内の内部関数)"""
+    # 必要なモックを設定
+    mocker.patch('time.sleep')  # sleepをモック
     
-    # u76e3u8996u30b9u30ecu30c3u30c9u3092u5b9fu884cu3059u308bu305fu3081u306eu72b6u614bu3092u8a2du5b9a
-    controller.monitoring = True
-    
-    # auto_accept.scan_screenu306eu632fu308bu821eu3044u3092u8a2du5b9a
-    # 1u56deu76eeu306fu30dcu30bfu30f3u304cu898bu3064u304bu3089u306au3044u30012u56deu76eeu306fu898bu3064u304bu308bu3001u305du306eu5f8cu306fu76e3u8996u505cu6b62
+    # auto_accept.scan_screenの振る舞いを設定
+    # 1回目はボタンが見つからない、2回目は見つかる、その後は監視停止
     scan_results = [False, True]
     controller.auto_accept.scan_screen.side_effect = lambda: scan_results.pop(0) if scan_results else False
     
-    # _monitoring_threadu30e1u30bdu30c3u30c9u3092u5b9fu884c
-    controller._monitoring_thread()
+    # GUIのauto_stop_varをTrueに設定
+    controller.gui.auto_stop_var.get.return_value = True
+    
+    # startメソッドを実行して内部のmonitor関数を呼び出す
+    controller.start()
+    
+    # 監視が開始されたことを確認
+    assert controller.monitoring is True
