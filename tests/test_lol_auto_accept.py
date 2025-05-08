@@ -16,34 +16,38 @@ from src.lol_auto_accept import LoLAutoAccept
 
 
 @pytest.fixture
-def lol_auto_accept_instance(default_config, mocker):
+def lol_auto_accept_instance(default_config, mocker, tmp_path):
+    base_dir = str(tmp_path)
+    
     # Path.resolveとPath.parentなどを適切にモック
     mock_path = MagicMock(spec=Path)
     mock_path.resolve.return_value = mock_path
-    mock_path.parent.parent = '/mock/path'
+    mock_path.parent.parent = base_dir
     mocker.patch('pathlib.Path.__new__', return_value=mock_path)
     
     # os.path.exists でパスが存在すると判定されるようモック
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('os.path.join', return_value='/mock/path/resources/accept_button.png')
-    mocker.patch('os.path.dirname', return_value='/mock/path/resources')
+    mocker.patch('os.path.join', return_value=f"{base_dir}/resources/accept_button.png")
+    mocker.patch('os.path.dirname', return_value=f"{base_dir}/resources")
     
     # 例外防止用にログ出力をモック
     mocker.patch('logging.info')
     mocker.patch('logging.error')
     
     # sys._MEIPASSも必要ならモック
-    # mocker.patch.object(sys, '_MEIPASS', '/mock/meipass', create=True)
+    # mocker.patch.object(sys, '_MEIPASS', f"{base_dir}/meipass", create=True)
     
     return LoLAutoAccept(default_config)
 
 
-def test_init_normal(default_config, mocker):
+def test_init_normal(default_config, mocker, tmp_path):
     """LoLAutoAcceptの初期化正常ケースのテスト"""
+    base_dir = str(tmp_path)
+    
     # ファイルが存在するケース
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('os.path.join', return_value='/mock/path/resources/accept_button.png')
-    mocker.patch('pathlib.Path.resolve', return_value=Path('/mock/path'))
+    mocker.patch('os.path.join', return_value=f"{base_dir}/resources/accept_button.png")
+    mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     mocker.patch('logging.info')
     
     instance = LoLAutoAccept(default_config)
@@ -51,14 +55,16 @@ def test_init_normal(default_config, mocker):
     assert instance.button_image == default_config['images']['accept_button']
     assert instance.confidence == default_config['template_matching']['confidence']
     assert instance.interval_sec == default_config['template_matching']['interval_sec']
-    assert instance.button_image_path == '/mock/path/resources/accept_button.png'
+    assert instance.button_image_path == f"{base_dir}/resources/accept_button.png"
 
 
-def test_init_no_image(default_config, mocker):
+def test_init_no_image(default_config, mocker, tmp_path):
     """画像が見つからない場合の初期化テスト"""
+    base_dir = str(tmp_path)
+    
     mocker.patch('os.path.exists', return_value=False)
-    mocker.patch('os.path.join', return_value='/not/exists/accept_button.png')
-    mocker.patch('pathlib.Path.resolve', return_value=Path('/mock/path'))
+    mocker.patch('os.path.join', return_value=f"{base_dir}/not_exists/accept_button.png")
+    mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     mocker.patch('logging.error')
     
     # 画像が見つからない場合はsys.exit(1)が呼ばれるため

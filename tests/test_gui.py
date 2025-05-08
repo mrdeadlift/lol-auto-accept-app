@@ -38,8 +38,10 @@ def mock_controller():
 
 
 @pytest.fixture
-def gui_instance(mock_controller, mocker):
+def gui_instance(mock_controller, mocker, tmp_path):
     """AutoAcceptGUIインスタンスの作成"""
+    base_dir = str(tmp_path)
+    
     # 停止状態のボタンをモック
     start_button = MagicMock()
     stop_button = MagicMock()
@@ -47,9 +49,9 @@ def gui_instance(mock_controller, mocker):
     exit_button = MagicMock()
     
     # パス関連のモック
-    mocker.patch('pathlib.Path.resolve', return_value=Path('/mock/path'))
+    mocker.patch('pathlib.Path.resolve', return_value=Path(base_dir))
     mocker.patch('os.path.exists', return_value=True)
-    mocker.patch('os.path.join', return_value='/mock/path/resources/tray_icon.ico')
+    mocker.patch('os.path.join', return_value=f"{base_dir}/resources/tray_icon.ico")
     
     # スレッド関連のモック
     thread_mock = MagicMock()
