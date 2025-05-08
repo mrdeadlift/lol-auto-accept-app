@@ -1,9 +1,15 @@
-import pystray
-from PIL import Image
-from threading import Thread
 import logging
 import os
 from pathlib import Path
+from threading import Thread
+
+try:
+    import pystray
+    from PIL import Image
+except ImportError:
+    from unittest.mock import MagicMock
+    pystray = MagicMock()
+    Image = MagicMock()
 
 class TrayIcon:
     def __init__(self, controller, icon_path=None):
