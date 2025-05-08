@@ -4,8 +4,13 @@ import sys
 import time
 import logging
 from pathlib import Path
-import pyautogui
 from unittest.mock import patch, MagicMock
+
+try:
+    import pyautogui
+except ImportError:
+    pyautogui = MagicMock()
+    pyautogui.ImageNotFoundException = Exception
 
 from src.lol_auto_accept import LoLAutoAccept
 

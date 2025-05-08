@@ -1,9 +1,13 @@
 import pytest
-import tkinter as tk
 import sys
 import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+try:
+    import tkinter as tk
+except ImportError:
+    tk = MagicMock()
 
 from src.auto_accept_gui import AutoAcceptGUI
 
