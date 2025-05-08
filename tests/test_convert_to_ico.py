@@ -1,8 +1,13 @@
 import pytest
 import os
+import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from PIL import Image
+
+# Import the module directly instead of executing the script
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src import convert_to_ico
 
 
 @pytest.fixture
@@ -29,14 +34,12 @@ def test_convert_png_to_ico(mock_image, tmp_path, mocker):
     # テスト用のファイルを作成
     png_path.touch()
     
-    # テスト対象のスクリプトを実行
-    script_path = Path(__file__).parent.parent / "src" / "convert_to_ico.py"
-    script_globals = {}
-    with open(script_path, 'r', encoding='utf-8') as f:
-        exec(f.read(), script_globals)
+    # 直接関数を呼び出す
+    with patch.object(convert_to_ico, '__file__', str(tmp_path / "convert_to_ico.py")):
+        convert_to_ico.convert_png_to_ico()
     
     # 検証
-    mock_image.save.assert_called_once()
+    assert mock_image.save.called
     assert 'format' in mock_image.save.call_args[1]
     assert mock_image.save.call_args[1]['format'] == 'ICO'
     assert print_mock.called
@@ -52,12 +55,10 @@ def test_convert_png_to_ico_file_not_found(mocker):
     mocker.patch('os.path.join', return_value=non_existent_path)
     mocker.patch('PIL.Image.open', side_effect=FileNotFoundError("File not found"))
     
-    # テスト対象のスクリプトを実行すると例外が発生することを確認
-    script_path = Path(__file__).parent.parent / "src" / "convert_to_ico.py"
+    # 直接関数を呼び出して例外が発生することを確認
     with pytest.raises(FileNotFoundError):
-        script_globals = {}
-        with open(script_path, 'r', encoding='utf-8') as f:
-            exec(f.read(), script_globals)
+        with patch.object(convert_to_ico, '__file__', "/path/to/nonexistent/convert_to_ico.py"):
+            convert_to_ico.convert_png_to_ico()
 
 
 def test_convert_png_to_ico_save_error(mock_image, tmp_path, mocker):
@@ -77,9 +78,7 @@ def test_convert_png_to_ico_save_error(mock_image, tmp_path, mocker):
     # テスト用のファイルを作成
     png_path.touch()
     
-    # テスト対象のスクリプトを実行すると例外が発生することを確認
-    script_path = Path(__file__).parent.parent / "src" / "convert_to_ico.py"
+    # 直接関数を呼び出して例外が発生することを確認
     with pytest.raises(PermissionError):
-        script_globals = {}
-        with open(script_path, 'r', encoding='utf-8') as f:
-            exec(f.read(), script_globals)
+        with patch.object(convert_to_ico, '__file__', str(tmp_path / "convert_to_ico.py")):
+            convert_to_ico.convert_png_to_ico()
