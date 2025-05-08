@@ -87,7 +87,7 @@ def test_save_config_permission_error(default_config):
          patch('src.config_utils.logging.error') as mock_error:
         # save_config doesn't return anything, so we just check if error logging is called
         save_config(default_config)
-        assert mock_error.called
+        assert mock_error.call_count > 0
 
 
 def test_save_config_io_error(default_config):
@@ -97,7 +97,7 @@ def test_save_config_io_error(default_config):
          patch('src.config_utils.logging.error') as mock_error:
         # save_config doesn't return anything, so we just check if error logging is called
         save_config(default_config)
-        assert mock_error.called
+        assert mock_error.call_count > 0
 
 
 def test_parse_arguments_default():

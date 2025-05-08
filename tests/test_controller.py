@@ -212,11 +212,13 @@ def test_exit_with_everything(controller, mock_thread):
     assert controller.gui.quit.called
 
 
-def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon):
+def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon, mocker):
     """exitメソッドのテスト - GUIなし、監視していない"""
     # GUIなしのControllerを作成
     controller = Controller(mock_auto_accept)
     controller.tray_icon = mock_tray_icon
+    
+    exit_mock = mocker.patch('sys.exit')
     
     # exitメソッドを実行
     controller.exit()
@@ -226,6 +228,9 @@ def test_exit_no_gui_no_monitoring(mock_auto_accept, mock_tray_icon):
     
     # tray_iconのメソッドが呼ばれたことを確認
     assert controller.tray_icon.shutdown.called
+    
+    # sys.exitが呼ばれたことを確認
+    assert exit_mock.called
 
 
 def test_monitor_function(controller, mock_thread, mocker):
